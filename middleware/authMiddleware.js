@@ -18,9 +18,7 @@ export const protect = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const { payload } = await jwtVerify(token, JWT_SECRET);
 
-    const user = await User.findById(payload.userId).select(
-      "_id username email",
-    );
+    const user = await User.findById(payload.userId).select("_id name email");
 
     if (!user) {
       res.status(401);

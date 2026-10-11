@@ -11,9 +11,9 @@ import { JWT_SECRET } from "../utils/getJwtSecret.js";
 // @access        Public
 router.post("/register", async (req, res, next) => {
   try {
-    const { username, email, password } = req.body || {};
+    const { name, email, password } = req.body || {};
 
-    if (!username || !email || !password) {
+    if (!name || !email || !password) {
       res.status(400);
       throw new Error("All fields are required!");
     }
@@ -26,7 +26,7 @@ router.post("/register", async (req, res, next) => {
     }
 
     const user = await User.create({
-      username,
+      name,
       email,
       password,
     });
@@ -48,7 +48,7 @@ router.post("/register", async (req, res, next) => {
       accessToken,
       user: {
         id: user._id,
-        username: user.username,
+        name: user.name,
         email: user.email,
       },
     });
@@ -101,7 +101,7 @@ router.post("/login", async (req, res, next) => {
       accessToken,
       user: {
         id: user._id,
-        username: user.username,
+        name: user.name,
         email: user.email,
       },
     });
@@ -155,7 +155,7 @@ router.post("/refresh", async (req, res, next) => {
       accessToken: newAccessToken,
       user: {
         id: user._id,
-        username: user.username,
+        name: user.name,
         email: user.email,
       },
     });
