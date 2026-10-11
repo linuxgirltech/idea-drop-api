@@ -54,7 +54,7 @@ router.get("/:id", async (req, res, next) => {
 
 // @route         POST /api/ideas
 // @description   Create an Idea
-// @access        Public
+// @access        Private
 router.post("/", protect, async (req, res, next) => {
   try {
     const { title, summary, description, tags } = req.body || {};
@@ -90,7 +90,7 @@ router.post("/", protect, async (req, res, next) => {
 
 // @route         DELETE /api/ideas/:id
 // @description   Delete a single Idea
-// @access        Public
+// @access        Private
 router.delete("/:id", protect, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -125,7 +125,7 @@ router.delete("/:id", protect, async (req, res, next) => {
 
 // @route         PUT /api/ideas/:id
 // @description   Update a single Idea
-// @access        Public
+// @access        Private
 router.put("/:id", protect, async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -135,6 +135,18 @@ router.put("/:id", protect, async (req, res, next) => {
       throw new Error("Idea not found");
     }
 
+    const idea = await Idea.findById(id);
+
+    if (!idea) {
+      res.status(404);
+      throw new Error("Idea not found");
+    }
+
+    if (idea.user.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error("Not authorized to update this idea");
+    }
+
     const { title, summary, description, tags } = req.body || {};
 
     if (!title?.trim() || !summary?.trim() || !description?.trim()) {
@@ -142,21 +154,19 @@ router.put("/:id", protect, async (req, res, next) => {
       throw new Error("Title, summary, and/or description are required!");
     }
 
-    const updatedIdea = await Idea.findByIdAndUpdate(
-      id,
-      {
-        title,
-        summary,
-        description,
-        tags: Array.isArray(tags) ? tags : tags.split(",").map((t) => t.trim()),
-      },
-      { new: true, runValidators: true },
-    );
+    idea.title = title;
+    idea.summary = summary;
+    idea.description = description;
+    idea.tags = Array.isArray(tags)
+      ? tags
+      : typeof tags === "string"
+        ? tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [];
 
-    if (!updatedIdea) {
-      res.status(404);
-      throw new Error("Idea not found");
-    }
+    const updatedIdea = await idea.save();
 
     res.json(updatedIdea);
   } catch (err) {
