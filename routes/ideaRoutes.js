@@ -4,10 +4,12 @@ const router = e.Router();
 import mongoose from "mongoose";
 
 import Idea from "../models/Idea.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 // @route         GET /api/ideas
 // @description   Get all Ideas
-// @access        PUBLIC
+// @access        Public
+// @query         _limit (optional limit for ideas returned)..
 router.get("/", async (req, res, next) => {
   try {
     const limit = parseInt(req.query._limit);
@@ -26,8 +28,7 @@ router.get("/", async (req, res, next) => {
 
 // @route         GET /api/ideas/:id
 // @description   Get a single Idea
-// @access        PUBLIC
-// @query         _limit (optional limit for ideas returned)
+// @access        Public
 router.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -53,10 +54,10 @@ router.get("/:id", async (req, res, next) => {
 
 // @route         POST /api/ideas
 // @description   Create an Idea
-// @access        PUBLIC
-router.post("/", async (req, res, next) => {
+// @access        Public
+router.post("/", protect, async (req, res, next) => {
   try {
-    const { title, summary, description, tags } = req.body;
+    const { title, summary, description, tags } = req.body || {};
 
     if (!title?.trim() || !summary?.trim() || !description?.trim()) {
       res.status(400);
@@ -71,11 +72,12 @@ router.post("/", async (req, res, next) => {
         typeof tags === "string"
           ? tags
               .split(",")
-              .map((tag) => tag.trim())
+              .map((t) => t.trim())
               .filter(Boolean)
           : Array.isArray(tags)
             ? tags
             : [],
+      user: req.user.id,
     });
 
     const savedIdea = await newIdea.save();
@@ -88,8 +90,8 @@ router.post("/", async (req, res, next) => {
 
 // @route         DELETE /api/ideas/:id
 // @description   Delete a single Idea
-// @access        PUBLIC
-router.delete("/:id", async (req, res, next) => {
+// @access        Public
+router.delete("/:id", protect, async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -98,12 +100,19 @@ router.delete("/:id", async (req, res, next) => {
       throw new Error("Idea not found");
     }
 
-    const idea = await Idea.findByIdAndDelete(id);
+    const idea = await Idea.findById(id);
 
     if (!idea) {
       res.status(404);
       throw new Error("Idea not found");
     }
+
+    if (idea.user.toString() !== req.user._id.toString()) {
+      res.status(403);
+      throw new Error("Not authorized to delete this idea");
+    }
+
+    await idea.deleteOne();
 
     res.json({
       message: "Idea deleted successfully!",
@@ -116,9 +125,8 @@ router.delete("/:id", async (req, res, next) => {
 
 // @route         PUT /api/ideas/:id
 // @description   Update a single Idea
-// @access        PUBLIC
-
-router.put("/:id", async (req, res, next) => {
+// @access        Public
+router.put("/:id", protect, async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -127,7 +135,7 @@ router.put("/:id", async (req, res, next) => {
       throw new Error("Idea not found");
     }
 
-    const { title, summary, description, tags } = req.body;
+    const { title, summary, description, tags } = req.body || {};
 
     if (!title?.trim() || !summary?.trim() || !description?.trim()) {
       res.status(400);
