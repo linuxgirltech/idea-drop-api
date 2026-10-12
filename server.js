@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 8053;
 connectDb();
 
 // CORS config
-const allowedOrigins = ["http://localhost:3000"];
+const allowedOrigins = ["http://localhost:3000", "http://73.14.202.239:3000"];
 
 app.use(
   cors({
