@@ -18,7 +18,15 @@ const PORT = process.env.PORT || 8053;
 
 connectDb();
 
-app.use(cors());
+// CORS config
+const allowedOrigins = ["http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ urlencoded: true }));
 app.use(cookieParser());
